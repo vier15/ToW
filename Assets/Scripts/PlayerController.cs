@@ -4,12 +4,14 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-[RequireComponent(typeof(Rigidbody2D))]
+[RequireComponent(typeof(Rigidbody2D), typeof(TouchingDirections))]
 
 public class PlayerController : MonoBehaviour
 {
     public float walkSpeed = 5f;
+    public float jumpImpulse = 10f;
     Vector2 moveInput;
+    TouchingDirections touchingDirections;
 
     [SerializeField]
     private bool _isMoving = false;
@@ -39,6 +41,21 @@ public class PlayerController : MonoBehaviour
         }
     }
 
+    public bool CanMove { get
+        { 
+            return animator.GetBool(AnimationStrings.canMove);
+        } 
+    }
+
+    public bool IsAlive
+    {
+        get
+        {
+            return animator.GetBool(AnimationStrings.isAlive);
+        }
+        
+    }
+
     Rigidbody2D rb;
     Animator animator;
 
@@ -46,6 +63,7 @@ public class PlayerController : MonoBehaviour
     {
         rb = GetComponent<Rigidbody2D>();
         animator = GetComponent<Animator>();
+        touchingDirections = GetComponent<TouchingDirections>();
     }
 
     // Start is called before the first frame update
@@ -74,9 +92,26 @@ public class PlayerController : MonoBehaviour
     {
         moveInput = context.ReadValue<Vector2>();
 
-        IsMoving = moveInput != Vector2.zero;
+        if(IsAlive)
+        {
+            IsMoving = moveInput != Vector2.zero;
 
-        SetFacingDirection(moveInput);
+            SetFacingDirection(moveInput);
+        }
+        else
+        {
+            IsMoving = false;
+        }
+        
+    }
+
+    public void OnJump(InputAction.CallbackContext context)
+    {
+        if(context.started && touchingDirections.isGrounded)
+        {
+            animator.SetTrigger(AnimationStrings.jump);
+            rb.velocity = new Vector2(rb.velocity.x, jumpImpulse);
+        }
     }
 
     private void SetFacingDirection(Vector2 moveInput)
@@ -88,6 +123,14 @@ public class PlayerController : MonoBehaviour
         else if(moveInput.x < 0 && IsFacingRight)
         {
             IsFacingRight = false;
+        }
+    }
+
+    public void OnAttack(InputAction.CallbackContext context)
+    {
+        if(context.started)
+        {
+            animator.SetTrigger(AnimationStrings.attack);
         }
     }
 }
